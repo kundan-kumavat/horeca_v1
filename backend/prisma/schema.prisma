@@ -8,37 +8,40 @@ datasource db {
 }
 
 model Hotel {
-  id          String   @id @default(uuid())
-  name        String
-  email       String?  @unique
-  phone       String?
-  address     String?
-  logoUrl     String?
-  currency    String   @default("INR")
-  timezone    String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id             String    @id @default(uuid())
+  name           String
+  email          String?   @unique
+  phone          String?
+  address        String?
+  logoUrl        String?
+  currency       String    @default("INR")
+  timezone       String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   // Relationships
-  masterAdmin User?       @relation("MasterAdmin", fields: [masterAdminId], references: [id])
-  masterAdminId String?
-  branches     Branch[]
+  masterAdmin    User?     @relation("MasterAdmin", fields: [masterAdminId], references: [id])
+  masterAdminId  String?
+  branches       Branch[]
+  users          User[]    @relation("HotelUsers") // all users linked to this hotel
 }
 
 model User {
-  id         String    @id @default(uuid())
-  email      String    @unique
-  password   String
-  name       String?
-  role       UserRole  @default(BRANCH_ADMIN)
-  branchId   String?   // For branch admin
-  hotelId    String?   // For master admin (links to hotel)
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  id          String     @id @default(uuid())
+  email       String     @unique
+  password    String
+  name        String?
+  role        UserRole   @default(BRANCH_ADMIN)
+  branchId    String?
+  hotelId     String?
+
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
 
   // Relations
-  branch     Branch?   @relation(fields: [branchId], references: [id])
-  hotel      Hotel?    @relation(fields: [hotelId], references: [id])
+  branch      Branch?    @relation(fields: [branchId], references: [id])
+  hotel       Hotel?     @relation("HotelUsers", fields: [hotelId], references: [id])
+  masterOf    Hotel[]    @relation("MasterAdmin") // reverse side of masterAdmin
 }
 
 enum UserRole {
@@ -47,34 +50,34 @@ enum UserRole {
 }
 
 model Branch {
-  id               String    @id @default(uuid())
-  name             String
-  address          String?
-  currency         String    @default("INR")
-  timezone         String?
-  defaultTaxPercent Float    @default(0)
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  id                String      @id @default(uuid())
+  name              String
+  address           String?
+  currency          String      @default("INR")
+  timezone          String?
+  defaultTaxPercent Float       @default(0)
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
 
   // Relations
-  hotelId          String
-  hotel            Hotel     @relation(fields: [hotelId], references: [id])
-  admin            User?     @relation(fields: [adminId], references: [id])
-  adminId          String?
-  tables           Table[]
-  categories       Category[]
-  menuItems        MenuItem[]
-  orders           Order[]
-  qrcodes          QRCode[]
+  hotelId           String
+  hotel             Hotel       @relation(fields: [hotelId], references: [id])
+  adminId           String?
+  admin             User[]       
+  tables            Table[]
+  categories        Category[]
+  menuItems         MenuItem[]
+  orders            Order[]
+  qrcodes           QRCode[]
 }
 
 model Table {
-  id         String      @id @default(uuid())
-  branch     Branch      @relation(fields: [branchId], references: [id])
+  id         String       @id @default(uuid())
   branchId   String
+  branch     Branch       @relation(fields: [branchId], references: [id])
   number     Int
   capacity   Int?
-  status     TableStatus @default(AVAILABLE)
+  status     TableStatus  @default(AVAILABLE)
 }
 
 enum TableStatus {
@@ -85,29 +88,29 @@ enum TableStatus {
 
 model QRCode {
   id        String   @id @default(uuid())
-  branch    Branch   @relation(fields: [branchId], references: [id])
   branchId  String
-  tableId   String?  // Nullable for outside QR
+  branch    Branch   @relation(fields: [branchId], references: [id])
+  tableId   String?
   label     String?
   url       String
   createdAt DateTime @default(now())
 }
 
 model Category {
-  id        String  @id @default(uuid())
-  branch    Branch  @relation(fields: [branchId], references: [id])
+  id        String    @id @default(uuid())
   branchId  String
+  branch    Branch    @relation(fields: [branchId], references: [id])
   name      String
-  order     Int     @default(0)
+  order     Int       @default(0)
   menuItems MenuItem[]
 }
 
 model MenuItem {
   id          String     @id @default(uuid())
-  branch      Branch     @relation(fields: [branchId], references: [id])
   branchId    String
-  category    Category?  @relation(fields: [categoryId], references: [id])
+  branch      Branch     @relation(fields: [branchId], references: [id])
   categoryId  String?
+  category    Category?  @relation(fields: [categoryId], references: [id])
   name        String
   description String?
   price       Float
@@ -119,8 +122,8 @@ model MenuItem {
 
 model Order {
   id            String       @id @default(uuid())
-  branch        Branch       @relation(fields: [branchId], references: [id])
   branchId      String
+  branch        Branch       @relation(fields: [branchId], references: [id])
   tableId       String?
   clientName    String?
   clientPhone   String?
