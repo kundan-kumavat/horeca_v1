@@ -1,0 +1,11 @@
+{
+    "name": "horeca-monorepo",
+    "private": true,
+    "devDependencies": {
+        "typescript": "^5.4.0"
+    },
+    "scripts": {
+        "dev": "pnpm -w -r --filter backend dev",
+        "start:backend": "pnpm --filter backend dev"
+    }
+}
