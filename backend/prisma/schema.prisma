@@ -1,15 +1,148 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
-  output   = "../generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+model Hotel {
+  id          String   @id @default(uuid())
+  name        String
+  email       String?  @unique
+  phone       String?
+  address     String?
+  logoUrl     String?
+  currency    String   @default("INR")
+  timezone    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relationships
+  masterAdmin User?       @relation("MasterAdmin", fields: [masterAdminId], references: [id])
+  masterAdminId String?
+  branches     Branch[]
+}
+
+model User {
+  id         String    @id @default(uuid())
+  email      String    @unique
+  password   String
+  name       String?
+  role       UserRole  @default(BRANCH_ADMIN)
+  branchId   String?   // For branch admin
+  hotelId    String?   // For master admin (links to hotel)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  // Relations
+  branch     Branch?   @relation(fields: [branchId], references: [id])
+  hotel      Hotel?    @relation(fields: [hotelId], references: [id])
+}
+
+enum UserRole {
+  MASTER_ADMIN
+  BRANCH_ADMIN
+}
+
+model Branch {
+  id               String    @id @default(uuid())
+  name             String
+  address          String?
+  currency         String    @default("INR")
+  timezone         String?
+  defaultTaxPercent Float    @default(0)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  // Relations
+  hotelId          String
+  hotel            Hotel     @relation(fields: [hotelId], references: [id])
+  admin            User?     @relation(fields: [adminId], references: [id])
+  adminId          String?
+  tables           Table[]
+  categories       Category[]
+  menuItems        MenuItem[]
+  orders           Order[]
+  qrcodes          QRCode[]
+}
+
+model Table {
+  id         String      @id @default(uuid())
+  branch     Branch      @relation(fields: [branchId], references: [id])
+  branchId   String
+  number     Int
+  capacity   Int?
+  status     TableStatus @default(AVAILABLE)
+}
+
+enum TableStatus {
+  AVAILABLE
+  OCCUPIED
+  RESERVED
+}
+
+model QRCode {
+  id        String   @id @default(uuid())
+  branch    Branch   @relation(fields: [branchId], references: [id])
+  branchId  String
+  tableId   String?  // Nullable for outside QR
+  label     String?
+  url       String
+  createdAt DateTime @default(now())
+}
+
+model Category {
+  id        String  @id @default(uuid())
+  branch    Branch  @relation(fields: [branchId], references: [id])
+  branchId  String
+  name      String
+  order     Int     @default(0)
+  menuItems MenuItem[]
+}
+
+model MenuItem {
+  id          String     @id @default(uuid())
+  branch      Branch     @relation(fields: [branchId], references: [id])
+  branchId    String
+  category    Category?  @relation(fields: [categoryId], references: [id])
+  categoryId  String?
+  name        String
+  description String?
+  price       Float
+  images      String[]   @default([])
+  labels      String[]   @default([])
+  prepTime    Int?
+  isActive    Boolean    @default(true)
+}
+
+model Order {
+  id            String       @id @default(uuid())
+  branch        Branch       @relation(fields: [branchId], references: [id])
+  branchId      String
+  tableId       String?
+  clientName    String?
+  clientPhone   String?
+  items         Json
+  totalAmount   Float
+  taxAmount     Float
+  finalAmount   Float
+  paymentMethod String
+  paymentStatus String       @default("pending")
+  status        OrderStatus  @default(NEW)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+}
+
+enum OrderStatus {
+  NEW
+  REQUESTED
+  ACCEPTED
+  PAID
+  PREPARING
+  READY
+  COMPLETED
+  CANCELLED
+  REFUNDED
 }
