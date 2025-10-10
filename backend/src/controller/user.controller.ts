@@ -1,7 +1,7 @@
 import { Body, Controller, Delete, Get, Param, Post, Put } from '@nestjs/common';
 import { UserService } from 'src/service/user.service';
 
-@Controller('users')
+@Controller('/users')
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
