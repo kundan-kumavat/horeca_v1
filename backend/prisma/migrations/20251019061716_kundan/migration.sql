@@ -5,7 +5,10 @@ CREATE TYPE "UserRole" AS ENUM ('MASTER_ADMIN', 'BRANCH_ADMIN');
 CREATE TYPE "TableStatus" AS ENUM ('AVAILABLE', 'OCCUPIED', 'RESERVED');
 
 -- CreateEnum
-CREATE TYPE "OrderStatus" AS ENUM ('NEW', 'REQUESTED', 'ACCEPTED', 'PAID', 'PREPARING', 'READY', 'COMPLETED', 'CANCELLED', 'REFUNDED');
+CREATE TYPE "OrderStatus" AS ENUM ('REQUESTED', 'ACCEPTED', 'READY', 'COMPLETED', 'CANCELLED');
+
+-- CreateEnum
+CREATE TYPE "PaymentStatus" AS ENUM ('PENDING', 'PAID', 'PAY_AT_COUNTER', 'REFUNDED');
 
 -- CreateTable
 CREATE TABLE "Hotel" (
@@ -43,9 +46,10 @@ CREATE TABLE "User" (
     "email" TEXT NOT NULL,
     "password" TEXT NOT NULL,
     "name" TEXT,
-    "role" "UserRole" NOT NULL DEFAULT 'BRANCH_ADMIN',
+    "role" "UserRole" NOT NULL DEFAULT 'MASTER_ADMIN',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
+    "branchUserId" TEXT,
 
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
 );
@@ -54,7 +58,7 @@ CREATE TABLE "User" (
 CREATE TABLE "Table" (
     "id" TEXT NOT NULL,
     "branchId" TEXT NOT NULL,
-    "number" INTEGER NOT NULL,
+    "number" TEXT NOT NULL,
     "capacity" INTEGER,
     "status" "TableStatus" NOT NULL DEFAULT 'AVAILABLE',
 
@@ -67,6 +71,7 @@ CREATE TABLE "QRCode" (
     "branchId" TEXT NOT NULL,
     "tableId" TEXT,
     "label" TEXT,
+    "shortPath" TEXT,
     "url" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -78,6 +83,8 @@ CREATE TABLE "Category" (
     "id" TEXT NOT NULL,
     "branchId" TEXT NOT NULL,
     "name" TEXT NOT NULL,
+    "description" TEXT,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
     "order" INTEGER NOT NULL DEFAULT 0,
 
     CONSTRAINT "Category_pkey" PRIMARY KEY ("id")
@@ -94,7 +101,7 @@ CREATE TABLE "MenuItem" (
     "images" TEXT[] DEFAULT ARRAY[]::TEXT[],
     "labels" TEXT[] DEFAULT ARRAY[]::TEXT[],
     "prepTime" INTEGER,
-    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "isAvailable" BOOLEAN NOT NULL DEFAULT true,
 
     CONSTRAINT "MenuItem_pkey" PRIMARY KEY ("id")
 );
@@ -111,8 +118,8 @@ CREATE TABLE "Order" (
     "taxAmount" DOUBLE PRECISION NOT NULL,
     "finalAmount" DOUBLE PRECISION NOT NULL,
     "paymentMethod" TEXT NOT NULL,
-    "paymentStatus" TEXT NOT NULL DEFAULT 'pending',
-    "status" "OrderStatus" NOT NULL DEFAULT 'NEW',
+    "paymentStatus" "PaymentStatus" NOT NULL DEFAULT 'PENDING',
+    "status" "OrderStatus" NOT NULL DEFAULT 'REQUESTED',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -138,10 +145,16 @@ ALTER TABLE "Branch" ADD CONSTRAINT "Branch_hotelId_fkey" FOREIGN KEY ("hotelId"
 ALTER TABLE "Branch" ADD CONSTRAINT "Branch_adminId_fkey" FOREIGN KEY ("adminId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "User" ADD CONSTRAINT "User_branchUserId_fkey" FOREIGN KEY ("branchUserId") REFERENCES "Branch"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "Table" ADD CONSTRAINT "Table_branchId_fkey" FOREIGN KEY ("branchId") REFERENCES "Branch"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "QRCode" ADD CONSTRAINT "QRCode_branchId_fkey" FOREIGN KEY ("branchId") REFERENCES "Branch"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "QRCode" ADD CONSTRAINT "QRCode_tableId_fkey" FOREIGN KEY ("tableId") REFERENCES "Table"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Category" ADD CONSTRAINT "Category_branchId_fkey" FOREIGN KEY ("branchId") REFERENCES "Branch"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -154,3 +167,6 @@ ALTER TABLE "MenuItem" ADD CONSTRAINT "MenuItem_categoryId_fkey" FOREIGN KEY ("c
 
 -- AddForeignKey
 ALTER TABLE "Order" ADD CONSTRAINT "Order_branchId_fkey" FOREIGN KEY ("branchId") REFERENCES "Branch"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Order" ADD CONSTRAINT "Order_tableId_fkey" FOREIGN KEY ("tableId") REFERENCES "Table"("id") ON DELETE SET NULL ON UPDATE CASCADE;

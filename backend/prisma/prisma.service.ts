@@ -12,7 +12,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
   }
 
   // helper for transactional usage
-  async transactional<T>(fn: (prisma: PrismaClient) => Promise<T>) {
-    return this.$transaction(async (tx) => fn(tx));
-  }
+  // async transactional<T>(fn: (prisma: PrismaClient) => Promise<T>) {
+  //   return this.$transaction(async (tx) => fn(tx));
+  // }
 }
